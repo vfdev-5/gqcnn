@@ -623,6 +623,8 @@ class CrossEntropyRobustGraspingPolicy(GraspingPolicy):
         logging.info('Sampled %d grasps' %(len(grasps)))
         logging.info('Computing the seed set took %.3f sec' %(time() - seed_set_start))
 
+        import math
+
         # iteratively refit and sample
         for j in range(self._num_iters):
             logging.info('CEM iter %d' %(j))
@@ -630,6 +632,10 @@ class CrossEntropyRobustGraspingPolicy(GraspingPolicy):
             # predict grasps
             predict_start = time()
             q_values = self._grasp_quality_fn(state, grasps, params=self._config)
+            grasp_depth_list = [g.depth for g in grasps]
+            grasp_depth_min, grasp_depth_max = min(grasp_depth_list), max(grasp_depth_list)
+            q_values = [q + 1.0 - (g.depth - grasp_depth_min) / (grasp_depth_max - grasp_depth_min)
+                        for q, g in zip(q_values, grasps)]
             logging.info('Prediction took %.3f sec' %(time()-predict_start))
 
             # sort grasps
@@ -757,6 +763,10 @@ class CrossEntropyRobustGraspingPolicy(GraspingPolicy):
         # predict final set of grasps
         predict_start = time()
         q_values = self._grasp_quality_fn(state, grasps, params=self._config)
+        grasp_depth_list = [g.depth for g in grasps]
+        grasp_depth_min, grasp_depth_max = min(grasp_depth_list), max(grasp_depth_list)
+        q_values = [q + 1.0 - (g.depth - grasp_depth_min) / (grasp_depth_max - grasp_depth_min)
+                    for q, g in zip(q_values, grasps)]
         logging.info('Final prediction took %.3f sec' %(time()-predict_start))
 
         if self.config['vis']['grasp_candidates']:
